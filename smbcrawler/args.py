@@ -1,8 +1,8 @@
 import argparse
 import getpass
+from importlib.metadata import version
 
 from .lists import LISTS, init_list
-from ._version import __version__
 
 parser = argparse.ArgumentParser(
     description="Search SMB shares for interesting files"
@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument(
     '-V', '--version', action='version',
-    version='smbcrawler %s' % __version__,
+    version=f'smbcrawler {version("smbcrawler")}',
 )
 
 output_grp = parser.add_argument_group("Input and output")
