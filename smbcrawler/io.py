@@ -137,15 +137,25 @@ def decode_bytes(data, file_type):
 def convert(data, mime, file_type):
     """Convert bytes to string"""
 
-    if mime.endswith('charset-binary') or file_type.endswith('data'):
-        if mime.startswith('application/pdf'):
-            import pdftotext
-            with io.BytesIO(data) as fp:
-                pdf = pdftotext.PDF(fp)
-            return '\n\n'.join(pdf)
-        else:
-            # TODO convert docx, xlsx
-            return ''
+    if 'application/pdf' in mime:
+        import PyPDF2
+        with io.BytesIO(data) as fp:
+            reader = PyPDF2.PdfReader(fp)
+            pdf = []
+            for page_num in range(len(reader.pages)):
+                page = reader.pages[page_num]
+                pdf.append(page.extract_text())
+        return '\n\n'.join(pdf)
+    elif 'wordprocessingml' in mime:
+        import docx
+        with io.BytesIO(data) as fp:
+            document = docx.Document(fp)
+            full_text = ''
+            for paragraph in document.paragraphs:
+                full_text += paragraph.text + '\n'
+        return full_text
+    elif mime.endswith('charset-binary') or file_type.endswith('data'):
+        return ''
     else:
         return decode_bytes(data, file_type)
 

@@ -143,6 +143,19 @@ class PasswordXml(Secret):
             result = 95
         return result
 
+class PasswordDocuments(Secret):
+    description = "'password' in PDF,docx file"
+    regex = '\\s*[a-z_\-]+passw[a-z_\-]+(:|=| )(?P<secret>.*?)'
+    likely_extensions = ['.pdf', '.docx']
+
+    def assess(self):
+        result = 90
+        _, ext = os.path.splitext(self.filename)
+        if self.likely_extensions and \
+           ext.lower() not in self.likely_extensions:
+            result -= 20
+        return result
+
 
 class PrivateKey(Secret):
     description = 'private key'
