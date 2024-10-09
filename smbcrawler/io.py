@@ -171,7 +171,9 @@ def find_secrets(data, filename, content_hash):
         return
 
     for line in data.splitlines():
-        if not line:
+        max_len = 256
+        # Skip long lines, likely not passwords, probably a questionable match from a document
+        if not line or len(line) >= max_len:
             continue
         secret = None
         # find secret with max confidence
@@ -188,20 +190,15 @@ def find_secrets(data, filename, content_hash):
         reported_secret = secret.get_secret()
         if not reported_secret:
             reported_secret = secret.get_line()
-        max_len = 100
-        if len(reported_secret) > max_len:
-            reported_secret = reported_secret[:max_len] + '...'
+
+        display_len
+        if len(reported_secret) > display_len:
+            reported_secret = reported_secret[:display_len] + '...'
 
         if reported_secret not in REPORTED[content_hash]:
             REPORTED[content_hash].append(reported_secret)
             log.success(
-                "Potential secret [%(hash)s]: %(line)s" % dict(
-                    desc=secret.description,
-                    conf=secret.confidence,
-                    hash=content_hash,
-                    filename=secret.filename,
-                    line=reported_secret,
-                )
+                    f"Potential secret [{content_hash}]: {reported_secret}"
             )
             SECRETS[content_hash].append(dict(
                 description=secret.description,
