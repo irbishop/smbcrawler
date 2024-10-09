@@ -191,7 +191,7 @@ def find_secrets(data, filename, content_hash):
         if not reported_secret:
             reported_secret = secret.get_line()
 
-        display_len
+        display_len = 100
         if len(reported_secret) > display_len:
             reported_secret = reported_secret[:display_len] + '...'
 
