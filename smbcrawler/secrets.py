@@ -37,7 +37,7 @@ class Secret(object):
         # long lines are unlikely in scripts and configs
         result = 90
         if len(self.line) > 512:
-            result -= 30
+            result -= 90
         _, ext = os.path.splitext(self.filename)
         if self.likely_extensions and \
            ext.lower() not in self.likely_extensions:
@@ -59,37 +59,38 @@ class Secret(object):
 
     def get_secret(self):
         if self.match_result:
-            return self.match_result.groupdict().get('secret', '')
+            s =  self.match_result.groupdict().get('secret', '')
+            return s if len(s) > 6 else f"\033[91mQUESTIONABLE\033[0m: {self.line}"
         return ""
 
     def get_line(self):
         if self.match_result:
-            return self.match_result.group(0).strip()
+            return self.match_result.group('secret').strip()
         return ""
 
 
 class NetUser(Secret):
     description = "'net use' command in script"
-    regex = 'net use.*/user.*'
+    regex = r'net use.*/user.*'
     likely_extensions = ['.ps1', '.bat']
 
 
 class RunAs(Secret):
     description = "'RunAs' command in script"
-    regex = 'runas.*/user'
+    regex = r'runas.*/user'
     likely_extensions = ['.ps1', '.bat']
 
 
 class SecureString(Secret):
     description = "'ConvertTo-SecureString' command in script"
-    regex = 'ConvertTo-SecureString'
+    regex = r'ConvertTo-SecureString'
     likely_extensions = ['.ps1', '.bat']
 
 
 class PasswordConfig(Secret):
     description = "'password =' in config"
-    regex = '(password|pwd|passwd)[a-z]*\\s*=(?P<secret>.*)'
-    likely_extensions = ['.ini', '.conf', '.cnf', '.config', '.properties']
+    regex = r'[a-z_\-\s]*(password|passphrase|pwd|passwd|secret)\s*=\s*(?P<secret>.*?)$'
+    likely_extensions = ['.ini', '.conf', '.cnf', '.config', '.properties','.txt']
 
     def assess(self):
         # some common strings that cause false positive
@@ -103,7 +104,7 @@ class PasswordConfig(Secret):
 
 class PasswordJson(Secret):
     description = "'password' value in JSON file"
-    regex = '"[a-z]*(password|pwd|passwd)[a-z]*":"(?P<secret>\\s*)"'
+    regex = r'"[a-z_\-\s]*(password|pwd|passwd|secret)":"(?P<secret>.*?)"'
     likely_extensions = ['.json']
 
     def assess(self):
@@ -118,7 +119,7 @@ class PasswordJson(Secret):
 
 class PasswordYaml(Secret):
     description = "'password' value in YAML file"
-    regex = '\\s*[a-z]*passw[a-z]*:(?P<secret>.*)'
+    regex = r'[a-z_\-\s]*(password|passwd|secret):\s+(?P<secret>.*?)$'
     likely_extensions = ['.yaml', '.yml']
 
     def assess(self):
@@ -129,7 +130,7 @@ class PasswordYaml(Secret):
 
 class PasswordXml(Secret):
     description = "'password' element in XML file"
-    regex = '<[a-z]*pass[!>]*>(?P<secret>[!<]+)</[a-z]pass'
+    regex = r'<[a-z_\-]*(passwd|password|passphrase|secret)*>(?P<secret>[!<].*?)</'
     likely_extensions = ['.xml']
 
     def assess(self):
@@ -145,7 +146,7 @@ class PasswordXml(Secret):
 
 class PasswordDocuments(Secret):
     description = "'password' in PDF,docx file"
-    regex = '\\s*[a-z_\-]+passw[a-z_\-]+(:|=| )(?P<secret>.*?)'
+    regex = r"[a-z_\-\s]*(password|passphrase|pwd|passwd|secret)[:|=|\s]+(?P<secret>\w+)"
     likely_extensions = ['.pdf', '.docx']
 
     def assess(self):
@@ -159,19 +160,19 @@ class PasswordDocuments(Secret):
 
 class PrivateKey(Secret):
     description = 'private key'
-    regex = '----- BEGIN[A-Z ]* PRIVATE KEY -----'
+    regex = r'----- BEGIN[A-Z ]+ PRIVATE KEY -----'
     likely_extensions = ['.pem', '.key']
 
 
 class AwsSecrets(Secret):
     description = 'AWS secrets'
-    regex = r'(aws_access_key_id|aws_secret_access_key)\s*=(?P<secret>.*)'
+    regex = r'(aws_access_key_id|aws_secret_access_key)\s+=(?P<secret>.*?)'
     likely_extensions = ['.ini']
 
 
 class EmpirumPassword(Secret):
     description = 'Empirum password'
-    regex = r'_PASSWORD_(SETUP|EIS|SYNC)=(?P<secret>.*)'
+    regex = r'_PASSWORD_(SETUP|EIS|SYNC)=(?P<secret>.*?)'
     likely_extensions = ['.ini']
 
     def assess(self):
